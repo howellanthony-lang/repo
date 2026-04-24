@@ -15,6 +15,7 @@ This version is an **MVP prototype** with a local API and touch-friendly web UI.
 - `apps/ui/index.html` — kiosk-friendly web dashboard
 - `apps/ui/app.js` — browser logic and API integration
 - `apps/ui/styles.css` — dashboard styling
+- `tests/api.test.mjs` — API test coverage using Node test runner
 
 ## Run Locally
 
@@ -36,6 +37,12 @@ npm run start:ui
 
 - UI: `http://localhost:5173`
 - API health: `http://localhost:3000/api/health`
+
+## Run Tests
+
+```bash
+npm test
+```
 
 ## Implemented API Endpoints
 

@@ -6,6 +6,7 @@
   "scripts": {
     "start:api": "node apps/api/server.mjs",
     "start:ui": "python3 -m http.server 5173 --directory apps/ui",
-    "run": "echo 'Run API and UI in two terminals: npm run start:api && npm run start:ui'"
+    "run": "echo 'Run API and UI in two terminals: npm run start:api && npm run start:ui'",
+    "test": "node --test tests/*.test.mjs"
   }
 }

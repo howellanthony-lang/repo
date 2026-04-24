@@ -49,6 +49,7 @@ npm test
 - `GET /api/health`
 - `GET /api/events`
 - `POST /api/events`
+- `PATCH /api/events/:id`
 - `GET /api/chores`
 - `POST /api/chores`
 - `POST /api/chores/:id/complete`
@@ -56,6 +57,7 @@ npm test
 - `POST /api/meals`
 - `GET /api/grocery/items`
 - `POST /api/grocery/items`
+- `PATCH /api/grocery/items/:id`
 
 ## Raspberry Pi Kiosk Notes
 

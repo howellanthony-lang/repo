@@ -47,9 +47,7 @@ function parseBody(req) {
 
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 1_000_000) {
-        reject(new Error('Body too large'));
-      }
+      if (body.length > 1_000_000) reject(new Error('Body too large'));
     });
 
     req.on('end', () => {
@@ -73,11 +71,7 @@ function validateRequired(payload, fields) {
     return typeof value !== 'string' || value.trim().length === 0;
   });
 
-  if (missing.length > 0) {
-    return `Missing required fields: ${missing.join(', ')}`;
-  }
-
-  return null;
+  return missing.length > 0 ? `Missing required fields: ${missing.join(', ')}` : null;
 }
 
 function isoWeekRange(date = new Date()) {
@@ -93,10 +87,7 @@ function isoWeekRange(date = new Date()) {
 function buildApiServer({ dbPath = defaultDbPath } = {}) {
   return createServer(async (req, res) => {
     try {
-      if (!req.url) {
-        sendJson(res, 404, { error: 'Not found' });
-        return;
-      }
+      if (!req.url) return sendJson(res, 404, { error: 'Not found' });
 
       if (req.method === 'OPTIONS') {
         res.writeHead(204, {
@@ -104,30 +95,24 @@ function buildApiServer({ dbPath = defaultDbPath } = {}) {
           'Access-Control-Allow-Methods': 'GET,POST,PATCH,OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type',
         });
-        res.end();
-        return;
+        return res.end();
       }
 
       const url = new URL(req.url, 'http://localhost');
       const db = readDb(dbPath);
 
       if (req.method === 'GET' && url.pathname === '/api/health') {
-        sendJson(res, 200, { ok: true, service: 'family-organizer-api' });
-        return;
+        return sendJson(res, 200, { ok: true, service: 'family-organizer-api' });
       }
 
       if (req.method === 'GET' && url.pathname === '/api/events') {
-        sendJson(res, 200, db.events);
-        return;
+        return sendJson(res, 200, db.events);
       }
 
       if (req.method === 'POST' && url.pathname === '/api/events') {
         const payload = await parseBody(req);
         const validationError = validateRequired(payload, ['title', 'owner']);
-        if (validationError) {
-          sendJson(res, 400, { error: validationError });
-          return;
-        }
+        if (validationError) return sendJson(res, 400, { error: validationError });
 
         const event = {
           id: randomUUID(),
@@ -141,22 +126,35 @@ function buildApiServer({ dbPath = defaultDbPath } = {}) {
 
         db.events.push(event);
         writeDb(dbPath, db);
-        sendJson(res, 201, event);
-        return;
+        return sendJson(res, 201, event);
+      }
+
+      if (req.method === 'PATCH' && url.pathname.match(/^\/api\/events\/[^/]+$/)) {
+        const eventId = url.pathname.split('/')[3];
+        const payload = await parseBody(req);
+        const event = db.events.find(item => item.id === eventId);
+        if (!event) return sendJson(res, 404, { error: 'Event not found' });
+
+        const updates = ['title', 'owner', 'start', 'end', 'source'];
+        for (const field of updates) {
+          if (typeof payload[field] === 'string' && payload[field].trim().length > 0) {
+            event[field] = payload[field].trim();
+          }
+        }
+
+        event.updated_at = new Date().toISOString();
+        writeDb(dbPath, db);
+        return sendJson(res, 200, event);
       }
 
       if (req.method === 'GET' && url.pathname === '/api/chores') {
-        sendJson(res, 200, db.chores);
-        return;
+        return sendJson(res, 200, db.chores);
       }
 
       if (req.method === 'POST' && url.pathname === '/api/chores') {
         const payload = await parseBody(req);
         const validationError = validateRequired(payload, ['title', 'assignee']);
-        if (validationError) {
-          sendJson(res, 400, { error: validationError });
-          return;
-        }
+        if (validationError) return sendJson(res, 400, { error: validationError });
 
         const chore = {
           id: randomUUID(),
@@ -170,38 +168,30 @@ function buildApiServer({ dbPath = defaultDbPath } = {}) {
 
         db.chores.push(chore);
         writeDb(dbPath, db);
-        sendJson(res, 201, chore);
-        return;
+        return sendJson(res, 201, chore);
       }
 
       if (req.method === 'POST' && url.pathname.match(/^\/api\/chores\/[^/]+\/complete$/)) {
         const choreId = url.pathname.split('/')[3];
         const chore = db.chores.find(item => item.id === choreId);
-
-        if (!chore) {
-          sendJson(res, 404, { error: 'Chore not found' });
-          return;
-        }
+        if (!chore) return sendJson(res, 404, { error: 'Chore not found' });
 
         chore.status = 'done';
         chore.completed_at = new Date().toISOString();
         writeDb(dbPath, db);
-        sendJson(res, 200, chore);
-        return;
+        return sendJson(res, 200, chore);
       }
 
       if (req.method === 'GET' && url.pathname === '/api/meals/week') {
         const { start, end } = isoWeekRange();
         const meals = db.meals.filter(m => m.date >= start && m.date <= end);
-        sendJson(res, 200, { range: { start, end }, meals });
-        return;
+        return sendJson(res, 200, { range: { start, end }, meals });
       }
 
       if (req.method === 'POST' && url.pathname === '/api/meals') {
         const payload = await parseBody(req);
         if (typeof payload.recipe !== 'string' || payload.recipe.trim().length === 0) {
-          sendJson(res, 400, { error: 'Missing required fields: recipe' });
-          return;
+          return sendJson(res, 400, { error: 'Missing required fields: recipe' });
         }
 
         const meal = {
@@ -214,20 +204,17 @@ function buildApiServer({ dbPath = defaultDbPath } = {}) {
 
         db.meals.push(meal);
         writeDb(dbPath, db);
-        sendJson(res, 201, meal);
-        return;
+        return sendJson(res, 201, meal);
       }
 
       if (req.method === 'GET' && url.pathname === '/api/grocery/items') {
-        sendJson(res, 200, db.grocery_items);
-        return;
+        return sendJson(res, 200, db.grocery_items);
       }
 
       if (req.method === 'POST' && url.pathname === '/api/grocery/items') {
         const payload = await parseBody(req);
         if (typeof payload.name !== 'string' || payload.name.trim().length === 0) {
-          sendJson(res, 400, { error: 'Missing required fields: name' });
-          return;
+          return sendJson(res, 400, { error: 'Missing required fields: name' });
         }
 
         const item = {
@@ -240,13 +227,31 @@ function buildApiServer({ dbPath = defaultDbPath } = {}) {
 
         db.grocery_items.push(item);
         writeDb(dbPath, db);
-        sendJson(res, 201, item);
-        return;
+        return sendJson(res, 201, item);
       }
 
-      sendJson(res, 404, { error: 'Not found' });
+      if (req.method === 'PATCH' && url.pathname.match(/^\/api\/grocery\/items\/[^/]+$/)) {
+        const itemId = url.pathname.split('/')[4];
+        const payload = await parseBody(req);
+        const item = db.grocery_items.find(entry => entry.id === itemId);
+        if (!item) return sendJson(res, 404, { error: 'Grocery item not found' });
+
+        if (typeof payload.checked === 'boolean') item.checked = payload.checked;
+        if (typeof payload.quantity === 'string' && payload.quantity.trim().length > 0) {
+          item.quantity = payload.quantity.trim();
+        }
+        if (typeof payload.name === 'string' && payload.name.trim().length > 0) {
+          item.name = payload.name.trim();
+        }
+
+        item.updated_at = new Date().toISOString();
+        writeDb(dbPath, db);
+        return sendJson(res, 200, item);
+      }
+
+      return sendJson(res, 404, { error: 'Not found' });
     } catch (error) {
-      sendJson(res, 400, { error: error.message });
+      return sendJson(res, 400, { error: error.message });
     }
   });
 }

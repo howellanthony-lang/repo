@@ -17,18 +17,84 @@ async function api(path, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const details = await response.json().catch(() => ({ error: `API error: ${response.status}` }));
+    throw new Error(details.error || `API error: ${response.status}`);
   }
 
   return response.json();
 }
 
-function renderList(target, items, formatter) {
-  target.innerHTML = '';
+function createActionButton(label, onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'small-btn';
+  button.textContent = label;
+  button.addEventListener('click', onClick);
+  return button;
+}
+
+function renderEvents(items) {
+  eventList.innerHTML = '';
   for (const item of items) {
     const li = document.createElement('li');
-    li.textContent = formatter(item);
-    target.append(li);
+    li.textContent = `${item.title} • ${item.owner}`;
+    eventList.append(li);
+  }
+}
+
+function renderMeals(items) {
+  mealList.innerHTML = '';
+  for (const item of items) {
+    const li = document.createElement('li');
+    li.textContent = `${item.date} ${item.meal_type}: ${item.recipe}`;
+    mealList.append(li);
+  }
+}
+
+function renderChores(items) {
+  choreList.innerHTML = '';
+  for (const item of items) {
+    const li = document.createElement('li');
+    li.className = item.status === 'done' ? 'done' : '';
+
+    const text = document.createElement('span');
+    text.textContent = `${item.title} • ${item.assignee} (${item.status})`;
+    li.append(text);
+
+    if (item.status !== 'done') {
+      li.append(
+        createActionButton('Complete', async () => {
+          await api(`/api/chores/${item.id}/complete`, { method: 'POST' });
+          await loadAll();
+        }),
+      );
+    }
+
+    choreList.append(li);
+  }
+}
+
+function renderGroceries(items) {
+  groceryList.innerHTML = '';
+  for (const item of items) {
+    const li = document.createElement('li');
+    li.className = item.checked ? 'done' : '';
+
+    const text = document.createElement('span');
+    text.textContent = `${item.name} x${item.quantity}`;
+    li.append(text);
+
+    li.append(
+      createActionButton(item.checked ? 'Uncheck' : 'Check', async () => {
+        await api(`/api/grocery/items/${item.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ checked: !item.checked }),
+        });
+        await loadAll();
+      }),
+    );
+
+    groceryList.append(li);
   }
 }
 
@@ -40,10 +106,10 @@ async function loadAll() {
     api('/api/grocery/items'),
   ]);
 
-  renderList(eventList, events, e => `${e.title} • ${e.owner}`);
-  renderList(choreList, chores, c => `${c.title} • ${c.assignee} (${c.status})`);
-  renderList(mealList, mealsWeek.meals, m => `${m.date} ${m.meal_type}: ${m.recipe}`);
-  renderList(groceryList, groceries, g => `${g.name} x${g.quantity}`);
+  renderEvents(events);
+  renderChores(chores);
+  renderMeals(mealsWeek.meals);
+  renderGroceries(groceries);
 }
 
 eventForm.addEventListener('submit', async event => {
@@ -54,7 +120,7 @@ eventForm.addEventListener('submit', async event => {
     body: JSON.stringify(Object.fromEntries(data.entries())),
   });
   eventForm.reset();
-  loadAll();
+  await loadAll();
 });
 
 choreForm.addEventListener('submit', async event => {
@@ -65,7 +131,7 @@ choreForm.addEventListener('submit', async event => {
     body: JSON.stringify(Object.fromEntries(data.entries())),
   });
   choreForm.reset();
-  loadAll();
+  await loadAll();
 });
 
 mealForm.addEventListener('submit', async event => {
@@ -73,12 +139,14 @@ mealForm.addEventListener('submit', async event => {
   const data = new FormData(mealForm);
   const payload = Object.fromEntries(data.entries());
   payload.date = new Date().toISOString().slice(0, 10);
+
   await api('/api/meals', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+
   mealForm.reset();
-  loadAll();
+  await loadAll();
 });
 
 groceryForm.addEventListener('submit', async event => {
@@ -89,7 +157,7 @@ groceryForm.addEventListener('submit', async event => {
     body: JSON.stringify(Object.fromEntries(data.entries())),
   });
   groceryForm.reset();
-  loadAll();
+  await loadAll();
 });
 
 loadAll().catch(error => {

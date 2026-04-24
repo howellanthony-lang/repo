@@ -30,19 +30,25 @@ test('health endpoint returns ok', async () => {
   });
 });
 
-test('event create and list', async () => {
+test('event create, update, and list', async () => {
   await withServer(async base => {
-    const create = await fetch(`${base}/api/events`, {
+    const created = await fetch(`${base}/api/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Dentist', owner: 'Dad' }),
+    }).then(r => r.json());
+
+    const updated = await fetch(`${base}/api/events/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Dentist (updated)' }),
     });
 
-    assert.equal(create.status, 201);
+    assert.equal(updated.status, 200);
 
     const events = await fetch(`${base}/api/events`).then(r => r.json());
     assert.equal(events.length, 1);
-    assert.equal(events[0].title, 'Dentist');
+    assert.equal(events[0].title, 'Dentist (updated)');
   });
 });
 
@@ -75,5 +81,23 @@ test('complete chore updates status', async () => {
     const body = await completed.json();
     assert.equal(completed.status, 200);
     assert.equal(body.status, 'done');
+  });
+});
+
+test('grocery item can be checked via patch endpoint', async () => {
+  await withServer(async base => {
+    const created = await fetch(`${base}/api/grocery/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Milk', quantity: '2' }),
+    }).then(r => r.json());
+
+    const updated = await fetch(`${base}/api/grocery/items/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checked: true }),
+    }).then(r => r.json());
+
+    assert.equal(updated.checked, true);
   });
 });

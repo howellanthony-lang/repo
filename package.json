@@ -1,0 +1,11 @@
+{
+  "name": "family-organizer-pi",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Off-grid family organizer prototype for Raspberry Pi",
+  "scripts": {
+    "start:api": "node apps/api/server.mjs",
+    "start:ui": "python3 -m http.server 5173 --directory apps/ui",
+    "run": "echo 'Run API and UI in two terminals: npm run start:api && npm run start:ui'"
+  }
+}

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Family Organizer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>🏡 Family Organizer</h1>
+      <p>Raspberry Pi wall dashboard (offline-first prototype)</p>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Add Calendar Event</h2>
+        <form id="event-form">
+          <input name="title" placeholder="Event title" required />
+          <input name="owner" placeholder="Owner (e.g. Mom)" required />
+          <button type="submit">Add Event</button>
+        </form>
+        <ul id="event-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Add Chore</h2>
+        <form id="chore-form">
+          <input name="title" placeholder="Chore" required />
+          <input name="assignee" placeholder="Assignee" required />
+          <button type="submit">Add Chore</button>
+        </form>
+        <ul id="chore-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Meal Plan</h2>
+        <form id="meal-form">
+          <input name="recipe" placeholder="Meal name" required />
+          <select name="meal_type">
+            <option value="breakfast">Breakfast</option>
+            <option value="lunch">Lunch</option>
+            <option value="dinner" selected>Dinner</option>
+          </select>
+          <button type="submit">Add Meal</button>
+        </form>
+        <ul id="meal-list"></ul>
+      </section>
+
+      <section class="panel">
+        <h2>Grocery List</h2>
+        <form id="grocery-form">
+          <input name="name" placeholder="Item" required />
+          <input name="quantity" placeholder="Qty" value="1" required />
+          <button type="submit">Add Item</button>
+        </form>
+        <ul id="grocery-list"></ul>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

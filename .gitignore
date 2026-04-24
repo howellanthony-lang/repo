@@ -1,0 +1,3 @@
+apps/api/data/
+*.log
+/tmp/
